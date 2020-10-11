@@ -2,7 +2,6 @@ import Flutter
 import UIKit
 import Photos
 
-
 public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
   var flutterResult: FlutterResult?
   var localId: String?
@@ -48,6 +47,7 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
         if albumName.isEmpty {
             print("没有传相册的名字")
         }else {
+            print("相册：", albumName)
             //看保存的指定相册是否存在
             let list = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
             
@@ -58,7 +58,6 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
                     stop.initialize(to: true)
                 }
             })
-            
             //不存在的话则创建该相册
             if assetAlbum == nil {
                 PHPhotoLibrary.shared().performChanges({
@@ -70,7 +69,6 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
                 return
             }
         }
-        
         //保存图片
         PHPhotoLibrary.shared().performChanges({
             //添加的相机胶卷
@@ -80,7 +78,6 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
             self.localId = assetPlaceholder?.localIdentifier
             //是否要添加到相簿
             if !albumName.isEmpty {
-                let assetPlaceholder = result.placeholderForCreatedAsset
                 let albumChangeRequset = PHAssetCollectionChangeRequest(for:
                     assetAlbum!)
                 albumChangeRequset!.addAssets([assetPlaceholder!]  as NSArray)
@@ -116,9 +113,9 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
         if albumName.isEmpty {
             print("没有传相册的名字")
         }else {
+            print("相册：", albumName)
             //看保存的指定相册是否存在
             let list = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
-            
             list.enumerateObjects({ (album, index, stop) in
                 let assetCollection = album
                 if albumName == assetCollection.localizedTitle {
@@ -126,7 +123,6 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
                     stop.initialize(to: true)
                 }
             })
-            
             //不存在的话则创建该相册
             if assetAlbum == nil {
                 PHPhotoLibrary.shared().performChanges({
@@ -138,7 +134,6 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
                 return
             }
         }
-        
         //保存图片
         PHPhotoLibrary.shared().performChanges({
             //添加的相机胶卷
@@ -148,13 +143,11 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
             }else{
                 result = PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: URL (fileURLWithPath: filePath))
             }
-            
             let assetPlaceholder = result?.placeholderForCreatedAsset
             //保存标志符
             self.localId = assetPlaceholder?.localIdentifier
             //是否要添加到相簿
             if !albumName.isEmpty {
-                let assetPlaceholder = result?.placeholderForCreatedAsset
                 let albumChangeRequset = PHAssetCollectionChangeRequest(for:
                     assetAlbum!)
                 albumChangeRequset!.addAssets([assetPlaceholder!]  as NSArray)
@@ -166,17 +159,26 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
                 let assetResult = PHAsset.fetchAssets(
                     withLocalIdentifiers: [self.localId!], options: nil)
                 let asset = assetResult[0]
-                let options = PHContentEditingInputRequestOptions()
-                options.canHandleAdjustmentData = {(adjustmeta: PHAdjustmentData)
-                    -> Bool in
-                    return true
+                if(self.isImageFile(filename: filePath)){
+                    let options = PHContentEditingInputRequestOptions()
+                    options.canHandleAdjustmentData = {(adjustmeta: PHAdjustmentData)
+                        -> Bool in
+                        return true
+                    }
+                    //获取保存的图片路径
+                    asset.requestContentEditingInput(with: options, completionHandler: {
+                        (contentEditingInput:PHContentEditingInput?, info: [AnyHashable : Any]) in
+                        print("地址：",contentEditingInput!.fullSizeImageURL!.absoluteString)
+                        self.flutterResult?(contentEditingInput!.fullSizeImageURL!.absoluteString)
+                    })
+                }else{
+                    PHImageManager().requestAVAsset(forVideo: asset, options: nil) { (avurlAsset, audioMix, info) in
+                        if let urlStr = (avurlAsset as? AVURLAsset)?.url.absoluteString {
+                            print("地址：",urlStr)
+                            self.flutterResult?(urlStr)
+                        }
+                    }
                 }
-                //获取保存的图片路径
-                asset.requestContentEditingInput(with: options, completionHandler: {
-                    (contentEditingInput:PHContentEditingInput?, info: [AnyHashable : Any]) in
-                    print("地址：",contentEditingInput!.fullSizeImageURL!)
-                    self.flutterResult?(contentEditingInput!.fullSizeImageURL!.absoluteString)
-                })
             } else{
                 print("保存失败：",error!.localizedDescription)
                 self.flutterResult?(error!.localizedDescription)
@@ -192,11 +194,12 @@ extension Data {
         case jpeg2000
         case tiff
         case bmp
-        case ico
         case icns
         case gif
         case png
         case webp
+        case heic
+        case heif
     }
     
     func detectImageType() -> Data.ImageType {
@@ -209,8 +212,6 @@ extension Data {
         switch value[0] {
         case 0x4D, 0x49:
             return .tiff
-        case 0x00:
-            return .ico
         case 0x69:
             return .icns
         case 0x47:
@@ -229,10 +230,21 @@ extension Data {
                 }
             }
             break
+        case 0x00 where self.count >= 12:
+            if let str = String(data: self[8...11], encoding: .ascii) {
+                let HEICBitMaps = Set(["heic", "heis", "heix", "hevc", "hevx"])
+                if HEICBitMaps.contains(str) {
+                    return .heic
+                }
+                let HEIFBitMaps = Set(["mif1", "msf1"])
+                if HEIFBitMaps.contains(str) {
+                    return .heif
+                }
+            }
+            break
         default:
             break
         }
-        
         return .unknown
     }
     

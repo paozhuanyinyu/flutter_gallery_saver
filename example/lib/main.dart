@@ -146,7 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
     var appDocDir = await getTemporaryDirectory();
     String savePath = appDocDir.path + "/temp.mp4";
     String fileUrl =
-        "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4";
+        "https://txmov2.a.yximgs.com/upic/2020/09/06/09/BMjAyMDA5MDYwOTQ1MzZfMTQ4NDI1ODY0XzM1NTk2NTg3NTcyXzFfMw==_b_B3580181bdf842990debc043eb9b5d0bd.mp4?clientCacheKey=3x3a54h46ppw6r9_b.mp4";
     await Dio().download(fileUrl, savePath, onReceiveProgress: (count, total) {
       print((count / total * 100).toStringAsFixed(0) + "%");
     });
