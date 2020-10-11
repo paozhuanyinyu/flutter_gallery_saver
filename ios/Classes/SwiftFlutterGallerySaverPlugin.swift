@@ -33,7 +33,7 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
     }
   }
   func getAppName() -> String{
-    return Bundle.main.infoDictionary!["CFBundleDisplayName"] as? String ?? "flutter_gallery_saver"
+    return Bundle.main.infoDictionary!["CFBundleName"] as? String ?? "flutter_gallery_saver"
   }
   func isImageFile(filename: String) -> Bool {
     let imageType = Data.detectImageType(with: filename)
