@@ -28,7 +28,13 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
             let albumName = arguments["albumName"]
             else { return }
         saveFileInAlbum(filePath: path, albumName: albumName as? String ?? getAppName())
-    } else {
+    } else if(call.method == "galleryFileExists"){
+        let arguments = call.arguments as? [String: Any] ?? [String: Any]()
+        guard let uri = arguments["uri"] as? String
+            else { return }
+        fileExists(uri: uri)
+    }
+    else {
       result(FlutterMethodNotImplemented)
     }
   }
@@ -39,7 +45,64 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
     let imageType = Data.detectImageType(with: filename)
     return imageType != Data.ImageType.unknown
   }
-  
+ func fileExists(uri: String){
+    let assetResult = PHAsset.fetchAssets(withLocalIdentifiers: [uri],options: nil)
+    if(assetResult.count == 0){
+        var resultDict = [String: Any]()
+        resultDict["isExists"] = false
+        resultDict["msg"] = uri + " not found"
+        resultDict["uri"] = ""
+        self.flutterResult?(resultDict)
+        return
+    }
+    let asset = assetResult[0]
+    let mediatype = (asset as PHAsset).mediaType
+    if(mediatype == PHAssetMediaType.video){
+        PHImageManager.default().requestAVAsset(forVideo: asset, options: nil, resultHandler: { (asset, mix, nil) in
+            let myAsset = asset as? AVURLAsset
+            let fileUrl = (myAsset?.url)!.absoluteString
+            print("video fileUrl：",fileUrl)
+            let filePath = (myAsset?.url)!.path
+            print("video filePath：",filePath)
+            let fileManager = FileManager.default
+            let isExists = fileManager.fileExists(atPath: filePath, isDirectory: nil)
+            print("video isExists: ", isExists)
+            var resultDict = [String: Any]()
+            resultDict["isExists"] = isExists
+            resultDict["msg"] = "success"
+            resultDict["uri"] = fileUrl
+            self.flutterResult?(resultDict)
+        })
+    }else if(mediatype == PHAssetMediaType.image){
+        let options = PHContentEditingInputRequestOptions()
+        options.canHandleAdjustmentData = {(adjustmeta: PHAdjustmentData)
+            -> Bool in
+            return true
+        }
+        //获取保存的图片路径
+        asset.requestContentEditingInput(with: options, completionHandler: {
+            (contentEditingInput:PHContentEditingInput?, info: [AnyHashable : Any]) in
+            let fileUrl = contentEditingInput!.fullSizeImageURL!.absoluteString
+            print("image fileUrl：",fileUrl)
+            let filePath = contentEditingInput!.fullSizeImageURL!.path
+            print("image filePath：",filePath)
+            let fileManager = FileManager.default
+            let isExists = fileManager.fileExists(atPath: filePath, isDirectory: nil)
+            print("isExists: ", isExists)
+            var resultDict = [String: Any]()
+            resultDict["isExists"] = isExists
+            resultDict["msg"] = "success"
+            resultDict["uri"] = fileUrl
+            self.flutterResult?(resultDict)
+        })
+    }else{
+        var resultDict = [String: Any]()
+        resultDict["isExists"] = false
+        resultDict["msg"] = "neither image nor video：" +  "\(mediatype.rawValue)"
+        resultDict["uri"] = ""
+        self.flutterResult?(resultDict)
+    }
+ }
   //保存图片到相册
   func saveImageInAlbum(image: UIImage, albumName: String = "") {
         var assetAlbum: PHAssetCollection?
@@ -85,24 +148,10 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
         }) { (isSuccess: Bool, error: Error?) in
             if isSuccess {
                 print("保存成功!")
-                //通过标志符获取对应的资源
-                let assetResult = PHAsset.fetchAssets(
-                    withLocalIdentifiers: [self.localId!], options: nil)
-                let asset = assetResult[0]
-                let options = PHContentEditingInputRequestOptions()
-                options.canHandleAdjustmentData = {(adjustmeta: PHAdjustmentData)
-                    -> Bool in
-                    return true
-                }
-                //获取保存的图片路径
-                asset.requestContentEditingInput(with: options, completionHandler: {
-                    (contentEditingInput:PHContentEditingInput?, info: [AnyHashable : Any]) in
-                    print("地址：",contentEditingInput!.fullSizeImageURL!)
-                    self.flutterResult?(contentEditingInput!.fullSizeImageURL!.absoluteString)
-                })
+                self.flutterResult?(self.localId)
             } else{
                 print("保存失败：",error!.localizedDescription)
-                self.flutterResult?(error!.localizedDescription)
+                self.flutterResult?("")
             }
         }
     }
@@ -155,33 +204,10 @@ public class SwiftFlutterGallerySaverPlugin: NSObject, FlutterPlugin {
         }) { (isSuccess: Bool, error: Error?) in
             if isSuccess {
                 print("保存成功!")
-                //通过标志符获取对应的资源
-                let assetResult = PHAsset.fetchAssets(
-                    withLocalIdentifiers: [self.localId!], options: nil)
-                let asset = assetResult[0]
-                if(self.isImageFile(filename: filePath)){
-                    let options = PHContentEditingInputRequestOptions()
-                    options.canHandleAdjustmentData = {(adjustmeta: PHAdjustmentData)
-                        -> Bool in
-                        return true
-                    }
-                    //获取保存的图片路径
-                    asset.requestContentEditingInput(with: options, completionHandler: {
-                        (contentEditingInput:PHContentEditingInput?, info: [AnyHashable : Any]) in
-                        print("地址：",contentEditingInput!.fullSizeImageURL!.absoluteString)
-                        self.flutterResult?(contentEditingInput!.fullSizeImageURL!.absoluteString)
-                    })
-                }else{
-                    PHImageManager().requestAVAsset(forVideo: asset, options: nil) { (avurlAsset, audioMix, info) in
-                        if let urlStr = (avurlAsset as? AVURLAsset)?.url.absoluteString {
-                            print("地址：",urlStr)
-                            self.flutterResult?(urlStr)
-                        }
-                    }
-                }
+                self.flutterResult?(self.localId)
             } else{
                 print("保存失败：",error!.localizedDescription)
-                self.flutterResult?(error!.localizedDescription)
+                self.flutterResult?("")
             }
         }
     }

@@ -7,7 +7,7 @@ We use the `image_picker` plugin to select images from the Android and iOS image
 To use this plugin, add `flutter_gallery_saver` as a dependency in your pubspec.yaml file. For example:
 ```yaml
 dependencies:
-  flutter_gallery_saver: '^0.0.5'
+  flutter_gallery_saver: '^0.0.6'
 ```
 
 ## iOS
@@ -36,13 +36,20 @@ Saving an image from the internet, quality and name is option
 ``` dart
 _save() async {
    var response = await Dio().get(
-           "https://ss0.baidu.com/94o3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=a62e824376d98d1069d40a31113eb807/838ba61ea8d3fd1fc9c7b6853a4e251f94ca5f46.jpg",
-           options: Options(responseType: ResponseType.bytes));
-   final result = await FlutterGallerySaver.saveImage(
-           Uint8List.fromList(response.data),
-           quality: 60,
-           name: "hello");
-   print(result);
+        "https://ss0.baidu.com/94o3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=a62e824376d98d1069d40a31113eb807/838ba61ea8d3fd1fc9c7b6853a4e251f94ca5f46.jpg",
+        options: Options(responseType: ResponseType.bytes));
+    final result = await FlutterGallerySaver.saveImage(
+        Uint8List.fromList(response.data),
+        quality: 60,
+        albumName: "hello");
+    print("saveImage result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
+    _toastInfo("$result");
+
+    Map map = await FlutterGallerySaver.galleryFileExists(result);
+    bool isExists = map["isExists"];
+    String uri = map["uri"];
+    String msg = map["msg"];
+    print("isExists: $isExists; uri: $uri; msg: $msg");
   }
 ```
 
@@ -51,9 +58,20 @@ Saving file(ig: video/gif/others) from the internet
 _saveVideo() async {
     var appDocDir = await getTemporaryDirectory();
     String savePath = appDocDir.path + "/temp.mp4";
-    await Dio().download("http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4", savePath);
+    String fileUrl =
+        "https://txmov2.a.yximgs.com/upic/2020/09/06/09/BMjAyMDA5MDYwOTQ1MzZfMTQ4NDI1ODY0XzM1NTk2NTg3NTcyXzFfMw==_b_B3580181bdf842990debc043eb9b5d0bd.mp4?clientCacheKey=3x3a54h46ppw6r9_b.mp4";
+    await Dio().download(fileUrl, savePath, onReceiveProgress: (count, total) {
+      print((count / total * 100).toStringAsFixed(0) + "%");
+    });
     final result = await FlutterGallerySaver.saveFile(savePath);
-    print(result);
+    print("saveFile result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
+    _toastInfo("$result");
+
+    Map map = await FlutterGallerySaver.galleryFileExists(result);
+    bool isExists = map["isExists"];
+    String uri = map["uri"];
+    String msg = map["msg"];
+    print("isExists: $isExists; uri: $uri; msg: $msg");
  }
 ```
 

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
@@ -36,7 +37,6 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
 
     _requestPermission();
-
   }
 
   @override
@@ -114,8 +114,14 @@ class _MyHomePageState extends State<MyHomePage> {
     ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     final result =
     await FlutterGallerySaver.saveImage(byteData.buffer.asUint8List());
-    print(result);
+    print("saveImage result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
     _toastInfo(result.toString());
+
+    Map map = await FlutterGallerySaver.galleryFileExists(result);
+    bool isExists = map["isExists"];
+    String uri = map["uri"];
+    String msg = map["msg"];
+    print("isExists: $isExists; uri: $uri; msg: $msg");
   }
 
   _getHttp() async {
@@ -126,8 +132,14 @@ class _MyHomePageState extends State<MyHomePage> {
         Uint8List.fromList(response.data),
         quality: 60,
         albumName: "hello");
-    print(result);
+    print("saveImage result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
     _toastInfo("$result");
+
+    Map map = await FlutterGallerySaver.galleryFileExists(result);
+    bool isExists = map["isExists"];
+    String uri = map["uri"];
+    String msg = map["msg"];
+    print("isExists: $isExists; uri: $uri; msg: $msg");
   }
 
   _saveGif() async {
@@ -138,8 +150,14 @@ class _MyHomePageState extends State<MyHomePage> {
     await Dio().download(fileUrl, savePath);
     print("gif下载完成");
     final result = await FlutterGallerySaver.saveFile(savePath);
-    print(result);
+    print("saveFile result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
     _toastInfo("$result");
+
+    Map map = await FlutterGallerySaver.galleryFileExists(result);
+    bool isExists = map["isExists"];
+    String uri = map["uri"];
+    String msg = map["msg"];
+    print("isExists: $isExists; uri: $uri; msg: $msg");
   }
 
   _saveVideo() async {
@@ -151,8 +169,14 @@ class _MyHomePageState extends State<MyHomePage> {
       print((count / total * 100).toStringAsFixed(0) + "%");
     });
     final result = await FlutterGallerySaver.saveFile(savePath);
-    print(result);
+    print("saveFile result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
     _toastInfo("$result");
+
+    Map map = await FlutterGallerySaver.galleryFileExists(result);
+    bool isExists = map["isExists"];
+    String uri = map["uri"];
+    String msg = map["msg"];
+    print("isExists: $isExists; uri: $uri; msg: $msg");
   }
 
   _toastInfo(String info) {

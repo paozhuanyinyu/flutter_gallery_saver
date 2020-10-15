@@ -46,6 +46,23 @@ class FlutterGallerySaverPlugin: FlutterPlugin, MethodCallHandler {
         val albumName = call.argument<String>("albumName")
         result.success(saveFileToGallery(path, albumName))
       }
+      "galleryFileExists" -> {
+        val uri = call.argument<String>("uri") ?: return
+        var isExists: Boolean = false
+        var msg: String = "success"
+        try {
+          println("uri: $uri")
+          val filePath = Uri.parse(uri).path
+          println("filePath: $filePath")
+          val file: File = File(filePath)
+          isExists = file.exists()
+        }catch (e: Exception){
+          e.printStackTrace()
+          msg = e.toString()
+        }
+        val resultMap = mutableMapOf("isExists" to isExists, "uri" to uri, "msg" to msg)
+        result.success(resultMap)
+      }
       else -> result.notImplemented()
     }
   }

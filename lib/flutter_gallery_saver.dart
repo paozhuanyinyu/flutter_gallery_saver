@@ -30,4 +30,15 @@ class FlutterGallerySaver {
     });
     return result;
   }
+
+  /// Check the file in the local device media gallery whether exists .
+  /// 这个filePath在android平台是文件存储地址，在iOS平台是localId
+  static Future galleryFileExists(String uri) async {
+    assert(uri != null);
+    final result =
+    await _channel.invokeMethod('galleryFileExists',  <String, dynamic> {
+      'uri': uri,
+    });
+    return result;
+  }
 }
