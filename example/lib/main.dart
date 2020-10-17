@@ -98,13 +98,36 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _requestPermission() async {
-    Map<Permission, PermissionStatus> statuses = await [
-      Permission.storage,
-    ].request();
-
-    final info = statuses[Permission.storage].toString();
-    print(info);
-    _toastInfo(info);
+    if(Platform.isAndroid){
+      if (await Permission.storage.request().isGranted) {
+        print("android storage permission has granted");
+      }else{
+        print("android storage permission has denied");
+      }
+    }else if(Platform.isIOS){
+      if (await Permission.photos.request().isGranted) {
+        print("ios photos permission has granted");
+      }else{
+        print("ios photos permission has denied");
+      }
+    }else{
+      print("platform not support");
+    }
+  }
+  _checkFileExists(String filePath) async {
+    if(Platform.isAndroid){
+      if (await Permission.storage.request().isGranted) {
+        File file =  File.fromUri(Uri.parse(filePath));
+        print("isExists: ${file.existsSync()}");
+      }
+    }else if(Platform.isIOS){
+      if (await Permission.photos.request().isGranted) {
+        File file =  File.fromUri(Uri.parse(filePath));
+        print("isExists: ${file.existsSync()}");
+      }
+    }else{
+      print("platform not support");
+    }
   }
 
   _saveScreen() async {
@@ -116,12 +139,7 @@ class _MyHomePageState extends State<MyHomePage> {
     await FlutterGallerySaver.saveImage(byteData.buffer.asUint8List());
     print("saveImage result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
     _toastInfo(result.toString());
-
-    Map map = await FlutterGallerySaver.galleryFileExists(result);
-    bool isExists = map["isExists"];
-    String uri = map["uri"];
-    String msg = map["msg"];
-    print("isExists: $isExists; uri: $uri; msg: $msg");
+    _checkFileExists(result);
   }
 
   _getHttp() async {
@@ -134,12 +152,7 @@ class _MyHomePageState extends State<MyHomePage> {
         albumName: "hello");
     print("saveImage result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
     _toastInfo("$result");
-
-    Map map = await FlutterGallerySaver.galleryFileExists(result);
-    bool isExists = map["isExists"];
-    String uri = map["uri"];
-    String msg = map["msg"];
-    print("isExists: $isExists; uri: $uri; msg: $msg");
+    _checkFileExists(result);
   }
 
   _saveGif() async {
@@ -150,14 +163,9 @@ class _MyHomePageState extends State<MyHomePage> {
     await Dio().download(fileUrl, savePath);
     print("gif下载完成");
     final result = await FlutterGallerySaver.saveFile(savePath);
-    print("saveFile result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
+    print("saveFile result: " + result);//这个result是文件存储地址
     _toastInfo("$result");
-
-    Map map = await FlutterGallerySaver.galleryFileExists(result);
-    bool isExists = map["isExists"];
-    String uri = map["uri"];
-    String msg = map["msg"];
-    print("isExists: $isExists; uri: $uri; msg: $msg");
+    _checkFileExists(result);
   }
 
   _saveVideo() async {
@@ -169,14 +177,9 @@ class _MyHomePageState extends State<MyHomePage> {
       print((count / total * 100).toStringAsFixed(0) + "%");
     });
     final result = await FlutterGallerySaver.saveFile(savePath);
-    print("saveFile result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
+    print("saveFile result: " + result);//这个result是文件存储地址
     _toastInfo("$result");
-
-    Map map = await FlutterGallerySaver.galleryFileExists(result);
-    bool isExists = map["isExists"];
-    String uri = map["uri"];
-    String msg = map["msg"];
-    print("isExists: $isExists; uri: $uri; msg: $msg");
+    _checkFileExists(result);
   }
 
   _toastInfo(String info) {

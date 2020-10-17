@@ -7,7 +7,7 @@ We use the `image_picker` plugin to select images from the Android and iOS image
 To use this plugin, add `flutter_gallery_saver` as a dependency in your pubspec.yaml file. For example:
 ```yaml
 dependencies:
-  flutter_gallery_saver: '^0.0.6'
+  flutter_gallery_saver: '^0.0.7'
 ```
 
 ## iOS
@@ -42,14 +42,8 @@ _save() async {
         Uint8List.fromList(response.data),
         quality: 60,
         albumName: "hello");
-    print("saveImage result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
-    _toastInfo("$result");
-
-    Map map = await FlutterGallerySaver.galleryFileExists(result);
-    bool isExists = map["isExists"];
-    String uri = map["uri"];
-    String msg = map["msg"];
-    print("isExists: $isExists; uri: $uri; msg: $msg");
+    print("saveImage result: " + result);//这个result文件存储地址
+    Fluttertoast.showToast(msg: result, toastLength: Toast.LENGTH_LONG);
   }
 ```
 
@@ -64,14 +58,8 @@ _saveVideo() async {
       print((count / total * 100).toStringAsFixed(0) + "%");
     });
     final result = await FlutterGallerySaver.saveFile(savePath);
-    print("saveFile result: " + result);//这个result在android平台是文件存储地址，在iOS平台是localId;如果是空，就代表保存失败
-    _toastInfo("$result");
-
-    Map map = await FlutterGallerySaver.galleryFileExists(result);
-    bool isExists = map["isExists"];
-    String uri = map["uri"];
-    String msg = map["msg"];
-    print("isExists: $isExists; uri: $uri; msg: $msg");
+    print("saveFile result: " + result);//这个result是文件存储地址
+    Fluttertoast.showToast(msg: result, toastLength: Toast.LENGTH_LONG);
  }
 ```
 
